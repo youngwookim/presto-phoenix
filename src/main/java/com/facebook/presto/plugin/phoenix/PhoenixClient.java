@@ -13,6 +13,7 @@
  */
 package com.facebook.presto.plugin.phoenix;
 
+import static java.util.Collections.nCopies;
 import static java.util.Locale.ENGLISH;
 
 import java.sql.Connection;
@@ -27,6 +28,8 @@ import org.apache.phoenix.queryserver.client.Driver;
 import com.facebook.presto.plugin.jdbc.BaseJdbcClient;
 import com.facebook.presto.plugin.jdbc.BaseJdbcConfig;
 import com.facebook.presto.plugin.jdbc.JdbcConnectorId;
+import com.facebook.presto.plugin.jdbc.JdbcOutputTableHandle;
+import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableSet;
 
@@ -62,5 +65,16 @@ public class PhoenixClient
         catch (SQLException e) {
             throw Throwables.propagate(e);
         }
+    }
+    
+    @Override
+    public String buildInsertSql(JdbcOutputTableHandle handle)
+    {
+        String vars = Joiner.on(',').join(nCopies(handle.getColumnNames().size(), "?"));
+        return new StringBuilder()
+                .append("UPSERT INTO ")
+                .append(quoted(handle.getCatalogName(), handle.getSchemaName(), handle.getTemporaryTableName()))
+                .append(" VALUES (").append(vars).append(")")
+                .toString();
     }
 }
