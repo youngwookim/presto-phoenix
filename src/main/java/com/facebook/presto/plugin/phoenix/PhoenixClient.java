@@ -22,7 +22,7 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
-import org.apache.phoenix.jdbc.PhoenixDriver;
+import org.apache.phoenix.queryserver.client.Driver;
 
 import com.facebook.presto.plugin.jdbc.BaseJdbcClient;
 import com.facebook.presto.plugin.jdbc.BaseJdbcConfig;
@@ -37,7 +37,7 @@ public class PhoenixClient
     public PhoenixClient(JdbcConnectorId connectorId, BaseJdbcConfig config)
             throws SQLException
     {
-        super(connectorId, config, "\"", new PhoenixDriver());
+        super(connectorId, config, "\"", new Driver());
     }
 
     @Override
