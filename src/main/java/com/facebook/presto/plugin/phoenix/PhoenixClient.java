@@ -66,7 +66,7 @@ public class PhoenixClient
             throw Throwables.propagate(e);
         }
     }
-    
+
     @Override
     public String buildInsertSql(JdbcOutputTableHandle handle)
     {
