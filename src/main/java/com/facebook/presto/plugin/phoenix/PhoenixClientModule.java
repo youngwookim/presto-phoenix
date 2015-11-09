@@ -21,13 +21,13 @@ import com.google.inject.Scopes;
 
 import static io.airlift.configuration.ConfigBinder.configBinder;
 
-public class PhoenixClientModule
-        implements Module
+public class PhoenixClientModule implements Module
 {
     @Override
     public void configure(Binder binder)
     {
         binder.bind(JdbcClient.class).to(PhoenixClient.class).in(Scopes.SINGLETON);
         configBinder(binder).bindConfig(BaseJdbcConfig.class);
+        configBinder(binder).bindConfig(PhoenixClientConfig.class);
     }
 }
