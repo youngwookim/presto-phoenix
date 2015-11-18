@@ -14,7 +14,6 @@
 package com.facebook.presto.plugin.phoenix;
 
 import io.airlift.configuration.Config;
-import io.airlift.configuration.ConfigDescription;
 
 public class PhoenixClientConfig
 {
@@ -56,19 +55,6 @@ public class PhoenixClientConfig
     public PhoenixClientConfig setUrl(String url)
     {
         this.url = url;
-        return this;
-    }
-
-    public boolean isImmutablePartitions()
-    {
-        return immutablePartitions;
-    }
-
-    @Config("phoenix.immutable-partitions")
-    @ConfigDescription("Can new data be inserted into existing partitions")
-    public PhoenixClientConfig setImmutablePartitions(boolean immutablePartitions)
-    {
-        this.immutablePartitions = immutablePartitions;
         return this;
     }
 }
