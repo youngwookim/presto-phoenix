@@ -18,20 +18,30 @@ import com.facebook.presto.plugin.jdbc.BaseJdbcConfig;
 import com.facebook.presto.plugin.jdbc.JdbcConnectorId;
 import com.facebook.presto.plugin.jdbc.JdbcOutputTableHandle;
 import com.facebook.presto.plugin.jdbc.JdbcTableHandle;
+import com.facebook.presto.spi.ColumnMetadata;
+import com.facebook.presto.spi.ConnectorTableMetadata;
+import com.facebook.presto.spi.PrestoException;
+import com.facebook.presto.spi.SchemaTableName;
+import com.facebook.presto.spi.type.Type;
 import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import org.apache.phoenix.queryserver.client.Driver;
+import io.airlift.slice.Slice;
+import org.apache.phoenix.jdbc.PhoenixDriver;
 
 import javax.inject.Inject;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Collection;
 import java.util.Set;
-import java.util.UUID;
 
+import static com.facebook.presto.plugin.jdbc.JdbcErrorCode.JDBC_ERROR;
+import static com.facebook.presto.spi.StandardErrorCode.NOT_FOUND;
 import static com.google.common.base.Strings.isNullOrEmpty;
+import static com.google.common.collect.Maps.fromProperties;
 import static java.util.Collections.nCopies;
 import static java.util.Locale.ENGLISH;
 
@@ -41,7 +51,7 @@ public class PhoenixClient extends BaseJdbcClient
     public PhoenixClient(JdbcConnectorId connectorId, BaseJdbcConfig config, PhoenixClientConfig phoenixClientConfig)
             throws SQLException
     {
-        super(connectorId, config, "\"", new Driver());
+        super(connectorId, config, "\"", new PhoenixDriver());
     }
 
     @Override
@@ -83,6 +93,103 @@ public class PhoenixClient extends BaseJdbcClient
         }
     }
 
+    private String quoted(String schema, String table)
+    {
+        StringBuilder sb = new StringBuilder();
+        if (!isNullOrEmpty(schema)) {
+            sb.append(quoted(schema)).append(".");
+        }
+        sb.append(quoted(table));
+        return sb.toString();
+    }
+
+    @Override
+    public JdbcOutputTableHandle beginCreateTable(ConnectorTableMetadata tableMetadata)
+    {
+        SchemaTableName schemaTableName = tableMetadata.getTable();
+        String schema = schemaTableName.getSchemaName();
+        String table = schemaTableName.getTableName();
+
+        if (!getSchemaNames().contains(schema)) {
+            throw new PrestoException(NOT_FOUND, "Schema not found: " + schema);
+        }
+
+        try (Connection connection = driver.connect(connectionUrl, connectionProperties)) {
+            boolean uppercase = connection.getMetaData().storesUpperCaseIdentifiers();
+            if (uppercase) {
+                schema = schema.toUpperCase(ENGLISH);
+                table = table.toUpperCase(ENGLISH);
+            }
+            String catalog = connection.getCatalog();
+
+            // String temporaryName = "tmp_presto_" + UUID.randomUUID().toString().replace("-", "");
+            String temporaryName = "ctas_presto_" + table;
+            StringBuilder sql = new StringBuilder()
+                    .append("CREATE TABLE ")
+                    .append(quoted(schema, temporaryName))
+                    .append(" (");
+            sql.append("UUID BIGINT NOT NULL PRIMARY KEY,");
+            ImmutableList.Builder<String> columnNames = ImmutableList.builder();
+            ImmutableList.Builder<Type> columnTypes = ImmutableList.builder();
+            ImmutableList.Builder<String> columnList = ImmutableList.builder();
+            for (ColumnMetadata column : tableMetadata.getColumns()) {
+                String columnName = column.getName();
+                if (uppercase) {
+                    columnName = columnName.toUpperCase(ENGLISH);
+                }
+                columnNames.add(columnName);
+                columnTypes.add(column.getType());
+                columnList.add(new StringBuilder()
+                        .append(quoted(columnName))
+                        .append(" ")
+                        .append(toSqlType(column.getType()))
+                        .toString());
+            }
+            Joiner.on(", ").appendTo(sql, columnList.build());
+            sql.append(")");
+
+            // FIXME
+            execute(connection, "DROP TABLE IF EXISTS " + quoted(schema, temporaryName));
+            execute(connection, "CREATE SEQUENCE " + "seq_" + temporaryName);
+            execute(connection, sql.toString());
+
+            return new JdbcOutputTableHandle(
+                    connectorId,
+                    catalog,
+                    schema,
+                    table,
+                    columnNames.build(),
+                    columnTypes.build(),
+                    tableMetadata.getOwner(),
+                    temporaryName,
+                    connectionUrl,
+                    fromProperties(connectionProperties));
+        }
+        catch (SQLException e) {
+            throw new PrestoException(JDBC_ERROR, e);
+        }
+    }
+
+    @Override
+    public void commitCreateTable(JdbcOutputTableHandle handle, Collection<Slice> fragments)
+    {
+        // StringBuilder sql = new StringBuilder()
+        // .append("ALTER TABLE ")
+        // .append(quoted(handle.getCatalogName(), handle.getSchemaName(), handle.getTemporaryTableName()))
+        // .append(" RENAME TO ")
+        // .append(quoted(handle.getCatalogName(), handle.getSchemaName(), handle.getTableName()));
+        StringBuilder sql = new StringBuilder()
+                .append("DROP SEQUENCE seq_" + handle.getTemporaryTableName());
+
+        try (Connection connection = getConnection(handle)) {
+            execute(connection, sql.toString());
+        }
+        catch (SQLException e) {
+            throw new PrestoException(JDBC_ERROR, e);
+        }
+
+    }
+
     @Override
     public String buildInsertSql(JdbcOutputTableHandle handle)
     {
@@ -91,17 +198,7 @@ public class PhoenixClient extends BaseJdbcClient
         return new StringBuilder().append("UPSERT INTO ")
                 .append(quoted(handle.getSchemaName(), handle.getTemporaryTableName()))
                 .append(" VALUES (")
-                .append("'" + UUID.randomUUID().toString().replace("-", "") + "'" + ",")
+                .append("NEXT VALUE FOR " + "seq_" + handle.getTemporaryTableName() + ",")
                 .append(vars).append(")").toString();
-    }
-
-    protected String quoted(String schema, String table)
-    {
-        StringBuilder sb = new StringBuilder();
-        if (!isNullOrEmpty(schema)) {
-            sb.append(quoted(schema)).append(".");
-        }
-        sb.append(quoted(table));
-        return sb.toString();
     }
 }

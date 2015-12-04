@@ -20,7 +20,6 @@ public class PhoenixClientConfig
     private String user;
     private String password;
     private String url;
-    private boolean immutablePartitions;
 
     public String getUser()
     {
