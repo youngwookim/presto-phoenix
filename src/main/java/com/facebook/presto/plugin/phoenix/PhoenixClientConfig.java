@@ -13,48 +13,22 @@
  */
 package com.facebook.presto.plugin.phoenix;
 
+import com.facebook.presto.plugin.jdbc.BaseJdbcConfig;
 import io.airlift.configuration.Config;
 
-public class PhoenixClientConfig
+public class PhoenixClientConfig extends BaseJdbcConfig
 {
     private String user;
-    private String password;
-    private String url;
-    private boolean immutablePartitions;
 
     public String getUser()
     {
         return user;
     }
 
-    public String getPassword()
-    {
-        return password;
-    }
-
-    public String getUrl()
-    {
-        return url;
-    }
-
     @Config("phoenix.user")
     public PhoenixClientConfig setUser(String user)
     {
         this.user = user;
-        return this;
-    }
-
-    @Config("phoenix.password")
-    public PhoenixClientConfig setPassword(String password)
-    {
-        this.password = password;
-        return this;
-    }
-
-    @Config("phoenix.url")
-    public PhoenixClientConfig setUrl(String url)
-    {
-        this.url = url;
         return this;
     }
 }

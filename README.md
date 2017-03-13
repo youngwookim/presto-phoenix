@@ -1,6 +1,7 @@
 # presto-phoenix
-Presto connector for Apache Phoenix
+Presto connector for Apache Phoenix (PQS)
 
 TBD
 
-https://phoenix.apache.org/server.html
+# Phoenix QueryServer
+- https://phoenix.apache.org/server.html

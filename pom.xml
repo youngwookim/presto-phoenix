@@ -6,13 +6,16 @@
 	<parent>
 		<groupId>com.facebook.presto</groupId>
 		<artifactId>presto-root</artifactId>
-		<version>0.136</version>
+		<version>0.167</version>
 	</parent>
 
 	<artifactId>presto-phoenix</artifactId>
 	<description>Presto - Apache Phoenix Connector</description>
 	<packaging>presto-plugin</packaging>
 
+	<properties>
+		<phoenix.version>4.9.0-HBase-1.2</phoenix.version>
+	</properties>
 
 	<dependencies>
 		<dependency>
@@ -31,19 +34,20 @@
 		</dependency>
 
 		<dependency>
+			<groupId>javax.inject</groupId>
+			<artifactId>javax.inject</artifactId>
+		</dependency>
+
+		<dependency>
 			<groupId>com.google.inject</groupId>
 			<artifactId>guice</artifactId>
 		</dependency>
 
 		<dependency>
 			<groupId>org.apache.phoenix</groupId>
-			<artifactId>phoenix-server-client</artifactId>
-			<version>4.7.0-HBase-1.1</version>
+			<artifactId>phoenix-queryserver-client</artifactId>
+			<version>${phoenix.version}</version>
 			<exclusions>
-				<exclusion>
-					<artifactId>protobuf-java</artifactId>
-					<groupId>com.google.protobuf</groupId>
-				</exclusion>
 				<exclusion>
 					<artifactId>jackson-annotations</artifactId>
 					<groupId>com.fasterxml.jackson.core</groupId>
@@ -55,6 +59,34 @@
 				<exclusion>
 					<artifactId>jackson-databind</artifactId>
 					<groupId>com.fasterxml.jackson.core</groupId>
+				</exclusion>
+				<exclusion>
+					<artifactId>jsr305</artifactId>
+					<groupId>com.google.code.findbugs</groupId>
+				</exclusion>
+				<exclusion>
+					<artifactId>avatica-metrics</artifactId>
+					<groupId>org.apache.calcite.avatica</groupId>
+				</exclusion>
+				<exclusion>
+					<artifactId>log4j</artifactId>
+					<groupId>log4j</groupId>
+				</exclusion>
+                                <exclusion>
+					<artifactId>slf4j-log4j12</artifactId>
+					<groupId>org.slf4j</groupId>
+				</exclusion>
+				<exclusion>
+					<artifactId>slf4j-api</artifactId>
+					<groupId>org.slf4j</groupId>
+				</exclusion>
+				<exclusion>
+					<artifactId>commons-lang3</artifactId>
+					<groupId>org.apache.commons</groupId>
+				</exclusion>
+				<exclusion>
+					<artifactId>commons-logging</artifactId>
+					<groupId>commons-logging</groupId>
 				</exclusion>
 			</exclusions>
 		</dependency>
@@ -78,6 +110,7 @@
 					<groupId>com.fasterxml.jackson.core</groupId>
 				</exclusion>
 			</exclusions>
+
 		</dependency>
 
 		<dependency>
@@ -87,22 +120,31 @@
 		</dependency>
 
 		<dependency>
-			<groupId>javax.inject</groupId>
-			<artifactId>javax.inject</artifactId>
+			<groupId>io.airlift</groupId>
+			<artifactId>units</artifactId>
 			<scope>provided</scope>
 		</dependency>
 
-
-
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-annotations</artifactId>
+			<scope>provided</scope>
+		</dependency>
 
 	</dependencies>
+
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
 				<groupId>com.google.protobuf</groupId>
 				<artifactId>protobuf-java</artifactId>
-				<version>3.0.0-beta-1</version>
+				<version>3.1.0</version>
 			</dependency>
+                        <dependency>
+                                        <artifactId>slf4j-api</artifactId>
+                                        <groupId>org.slf4j</groupId>
+                                        <version>1.7.12</version>
+                                </dependency>
 		</dependencies>
 	</dependencyManagement>
 </project>
